@@ -1,0 +1,121 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Exploração Tabela
+
+```{r}
+head(InteliFalhas, n=10)
+```
+
+```{r}
+str(InteliFalhas)
+```
+
+```{r}
+summary(InteliFalhas)
+```
+
+# Limpeza das colunas
+
+Com base na análise das variáveis, decidi remover as descrições dos IDs, pois eles já representam suas próprias informações. Além disso, removemos a linha e coluna (cartesiano da posição da falha) , uma vez que não é nescessario ja que ja temos o campo. Além disso vamos remover o view_id, pois 
+
+```{r}
+final_data <- InteliFalhas[, c("ID", "DATA DETECCAO", "PONTO","LOC_ID","POS_ID","TYPE_ID")]
+head(final_data)
+```
+
+```{r}
+head(final_data)
+
+```
+```{r}
+# Lista de pacotes necessários
+packages <- c("ggplot2", "dplyr", "corrplot", "FactoMineR", "factoextra")
+
+# Verificar e instalar pacotes que não estão instalados
+install_if_missing <- function(pkg) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+
+# Instalar e carregar pacotes
+lapply(packages, install_if_missing)
+
+# Mensagem de sucesso
+cat("Todas as bibliotecas foram instaladas e carregadas com sucesso!\n")
+
+```
+
+```{r}
+# Carregar pacotes necessários
+
+
+# Gráficos Univariados -----------------------------------------
+
+# Contagem de falhas por PONTO
+ggplot(final_data, aes(x = PONTO)) + 
+  geom_bar(fill = "steelblue") + 
+  theme_minimal() + 
+  coord_flip() +
+  labs(title = "Contagem de falhas por PONTO", x = "PONTO", y = "Contagem")
+
+# Contagem de falhas por TYPE_ID (Tipo de erro)
+ggplot(final_data, aes(x = as.factor(TYPE_ID))) + 
+  geom_bar(fill = "darkorange") + 
+  theme_minimal() + 
+  labs(title = "Contagem de falhas por TYPE_ID", x = "Tipo de erro", y = "Contagem")
+
+# Contagem de falhas por LOC_ID (Parte afetada)
+ggplot(final_data, aes(x = as.factor(LOC_ID))) + 
+  geom_bar(fill = "purple") + 
+  theme_minimal() + 
+  labs(title = "Contagem de falhas por LOC_ID", x = "Parte do carro", y = "Contagem")
+
+# Gráficos Bivariados -----------------------------------------
+
+# Relação entre PONTO e TYPE_ID
+ggplot(final_data, aes(x = PONTO, fill = as.factor(TYPE_ID))) + 
+  geom_bar(position = "dodge") + 
+  theme_minimal() + 
+  coord_flip() +
+  labs(title = "Distribuição de TYPE_ID por PONTO", x = "PONTO", y = "Contagem")
+
+# Relação entre LOC_ID e TYPE_ID
+ggplot(final_data, aes(x = as.factor(LOC_ID), fill = as.factor(TYPE_ID))) + 
+  geom_bar(position = "dodge") + 
+  theme_minimal() + 
+  labs(title = "Distribuição de TYPE_ID por LOC_ID", x = "LOC_ID", y = "Contagem")
+
+# Análise Multivariada -----------------------------------------
+
+# Matriz de correlação entre as variáveis numéricas
+cor_matrix <- cor(final_data %>% select(LOC_ID, POS_ID, TYPE_ID))
+corrplot(cor_matrix, method = "circle", type = "upper")
+
+# PCA (Análise de Componentes Principais)
+pca_res <- PCA(final_data %>% select(LOC_ID, POS_ID, TYPE_ID), graph = FALSE)
+
+# Plot dos componentes principais
+fviz_pca_var(pca_res, col.var = "blue")
+```
+
+# Relatório
+
+### Alterações realizadas
+
+-   **Removemos descrições do campo `ID`**, pois ele já representa a informação de forma otimizada.\
+-   **Excluímos colunas de posição cartesiana**, pois `POS_ID` já atende essa necessidade.
+
+### Colunas selecionadas para a versão final
+
+-   **`ID`** → Identificador único do carro.\
+-   **`DATA DETECCAO`** → Data e hora da detecção da falha.\
+-   **`PONTO`** → Etapa onde ocorreu a falha (Ex.: ZP, Rodagem, Água).\
+-   **`LOC_ID`** → Parte do carro afetada (Ex.: Tampa traseira, Alavanca do freio manual).\
+-   **`POS_ID`** → Posição da falha (Ex.: Direita, Esquerda, Superior esquerda).\
+-   **`TYPE_ID`** → Tipo de erro identificado (Ex.: Repuxado de cola, Resíduo de soldagem).\
+
